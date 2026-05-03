@@ -13,8 +13,8 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu"
 import { ShareLinkDialog } from "@/components/app/share-link-dialog"
+import { ManageCoachSheet } from "@/components/app/manage-coach-sheet"
 import { api } from "@/lib/api"
-import type { Coach } from "@/lib/types"
 
 type ShareTarget =
   | {
@@ -35,6 +35,7 @@ export function DirectorCoaches() {
   const [email, setEmail] = useState("")
   const [role, setRole] = useState<"coach" | "director">("coach")
   const [share, setShare] = useState<ShareTarget>(null)
+  const [manageId, setManageId] = useState<string | null>(null)
 
   const { data, isPending } = useQuery({
     queryKey: ["coaches"],
@@ -85,21 +86,6 @@ export function DirectorCoaches() {
     },
     onError: (e) =>
       toast.error(e instanceof Error ? e.message : "Could not cancel"),
-  })
-
-  const resetPassword = useMutation({
-    mutationFn: (coach: Coach) =>
-      api.resetCoachPassword(coach.id).then((res) => ({ res, coach })),
-    onSuccess: ({ res, coach }) => {
-      setShare({
-        kind: "reset",
-        url: res.reset.resetUrl,
-        email: coach.email,
-        expiresAt: res.reset.expiresAt,
-      })
-    },
-    onError: (e) =>
-      toast.error(e instanceof Error ? e.message : "Could not reset"),
   })
 
   const validEmail = /^[^@\s]+@stanford\.edu$/i.test(email)
@@ -173,9 +159,10 @@ export function DirectorCoaches() {
         {coaches.map((c, i) => (
           <div
             key={c.id}
-            className={`grid grid-cols-[1.4fr_1.6fr_100px_130px_110px_60px] gap-x-4 items-center px-5 py-3.5 ${
-              i < coaches.length - 1 ? "border-b border-line" : ""
-            }`}
+            onClick={() => c.status === "active" && setManageId(c.id)}
+            className={`grid grid-cols-[1.4fr_1.6fr_100px_130px_110px_60px] gap-x-4 items-center px-5 py-3.5 transition-colors ${
+              c.status === "active" ? "cursor-pointer hover:bg-bg/40" : ""
+            } ${i < coaches.length - 1 ? "border-b border-line" : ""}`}
           >
             <div className="flex items-center gap-2.5 min-w-0">
               <Avatar className="w-7 h-7">
@@ -210,7 +197,10 @@ export function DirectorCoaches() {
                 {c.status}
               </span>
             </div>
-            <div className="flex justify-end">
+            <div
+              className="flex justify-end"
+              onClick={(e) => e.stopPropagation()}
+            >
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
@@ -236,10 +226,8 @@ export function DirectorCoaches() {
                       </DropdownMenuItem>
                     </>
                   ) : (
-                    <DropdownMenuItem
-                      onClick={() => resetPassword.mutate(c)}
-                    >
-                      Reset password
+                    <DropdownMenuItem onClick={() => setManageId(c.id)}>
+                      Manage coach
                     </DropdownMenuItem>
                   )}
                 </DropdownMenuContent>
@@ -271,6 +259,11 @@ export function DirectorCoaches() {
         url={share?.url ?? null}
         recipientEmail={share?.email}
         expiresAt={share?.expiresAt ?? null}
+      />
+
+      <ManageCoachSheet
+        coachId={manageId}
+        onOpenChange={(v) => !v && setManageId(null)}
       />
     </DirectorPage>
   )

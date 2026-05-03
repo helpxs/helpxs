@@ -214,3 +214,139 @@ coaches.post("/:userId/reset-password", async (c) => {
     },
   })
 })
+
+/**
+ * Coach detail — used by the Manage sheet. Includes member metadata, session
+ * stats, and the most recent N sessions for that coach in the active org.
+ */
+coaches.get("/:userId", async (c) => {
+  const orgId = c.get("organizationId")
+  const targetId = c.req.param("userId")
+
+  const member = await c.env.DB.prepare(
+    `SELECT m.role, m.createdAt as joinedAt, u.name, u.email
+     FROM member m JOIN user u ON u.id = m.userId
+     WHERE m.userId = ? AND m.organizationId = ?`,
+  )
+    .bind(targetId, orgId)
+    .first<{ role: string; joinedAt: string; name: string; email: string }>()
+  if (!member) return c.json({ error: "Coach not in this organization" }, 404)
+
+  const stats = await c.env.DB.prepare(
+    `SELECT COUNT(*) AS sessions, AVG(duration_seconds) AS avg_duration, MAX(occurred_at) AS last_at
+     FROM sessions_log WHERE coach_id = ? AND organization_id = ?`,
+  )
+    .bind(targetId, orgId)
+    .first<{ sessions: number; avg_duration: number | null; last_at: string | null }>()
+
+  const recent = await c.env.DB.prepare(
+    `SELECT id, occurred_at, duration_seconds, data
+     FROM sessions_log WHERE coach_id = ? AND organization_id = ?
+     ORDER BY occurred_at DESC LIMIT 8`,
+  )
+    .bind(targetId, orgId)
+    .all<{
+      id: string
+      occurred_at: string
+      duration_seconds: number | null
+      data: string
+    }>()
+
+  return c.json({
+    coach: {
+      id: targetId,
+      name: member.name,
+      email: member.email,
+      role: member.role === "admin" || member.role === "owner" ? "director" : "coach",
+      memberRole: member.role,
+      joinedAt: member.joinedAt,
+      sessions: stats?.sessions ?? 0,
+      avgDurationSeconds: stats?.avg_duration
+        ? Math.round(stats.avg_duration)
+        : null,
+      lastEntryAt: stats?.last_at ?? null,
+    },
+    recentSessions: recent.results.map((r) => {
+      const data = JSON.parse(r.data) as {
+        topics?: string[]
+        format?: string
+        referral?: string
+      }
+      return {
+        id: r.id,
+        occurredAt: r.occurred_at,
+        durationSeconds: r.duration_seconds,
+        topic: data.topics?.[0] ?? null,
+        format: data.format ?? null,
+        referral: data.referral ?? null,
+      }
+    }),
+  })
+})
+
+/**
+ * Change a member's role within the active org.
+ *   { role: "director" | "coach" }
+ * Maps to better-auth's "admin" / "member" under the hood.
+ */
+coaches.post("/:userId/role", async (c) => {
+  const orgId = c.get("organizationId")
+  const directorId = c.get("user").id
+  const targetId = c.req.param("userId")
+  const body = (await c.req.json()) as { role: "director" | "coach" }
+  if (body.role !== "director" && body.role !== "coach") {
+    return c.json({ error: "Invalid role" }, 400)
+  }
+  if (targetId === directorId) {
+    return c.json({ error: "You can't change your own role." }, 400)
+  }
+
+  const member = await c.env.DB.prepare(
+    `SELECT id, role FROM member WHERE userId = ? AND organizationId = ?`,
+  )
+    .bind(targetId, orgId)
+    .first<{ id: string; role: string }>()
+  if (!member) return c.json({ error: "Coach not in this organization" }, 404)
+  if (member.role === "owner") {
+    return c.json({ error: "Cannot change the owner's role." }, 400)
+  }
+
+  const newRole = body.role === "director" ? "admin" : "member"
+  await c.env.DB.prepare(`UPDATE member SET role = ? WHERE id = ?`)
+    .bind(newRole, member.id)
+    .run()
+  return c.json({ ok: true, role: body.role })
+})
+
+/**
+ * Remove a coach from the active org. Sessions remain attributed to their
+ * (now-orphaned) coach_id for historical reporting; the user themselves is
+ * not deleted from better-auth — they can still sign in to other orgs.
+ */
+coaches.delete("/:userId", async (c) => {
+  const orgId = c.get("organizationId")
+  const directorId = c.get("user").id
+  const targetId = c.req.param("userId")
+
+  if (targetId === directorId) {
+    return c.json({ error: "You can't remove yourself." }, 400)
+  }
+  const member = await c.env.DB.prepare(
+    `SELECT id, role FROM member WHERE userId = ? AND organizationId = ?`,
+  )
+    .bind(targetId, orgId)
+    .first<{ id: string; role: string }>()
+  if (!member) return c.json({ error: "Coach not in this organization" }, 404)
+  if (member.role === "owner") {
+    return c.json({ error: "Cannot remove the owner." }, 400)
+  }
+
+  await c.env.DB.prepare(`DELETE FROM member WHERE id = ?`)
+    .bind(member.id)
+    .run()
+  // Invalidate any sessions for the removed user so their cookie stops working.
+  await c.env.DB.prepare(`DELETE FROM session WHERE userId = ?`)
+    .bind(targetId)
+    .run()
+  return c.json({ ok: true })
+})

@@ -139,6 +139,41 @@ export const api = {
       { method: "DELETE" },
     ),
 
+  // Director: coach detail (Manage sheet)
+  getCoach: (userId: string) =>
+    request<{
+      coach: {
+        id: string
+        name: string
+        email: string
+        role: "director" | "coach"
+        memberRole: string
+        joinedAt: string
+        sessions: number
+        avgDurationSeconds: number | null
+        lastEntryAt: string | null
+      }
+      recentSessions: Array<{
+        id: string
+        occurredAt: string
+        durationSeconds: number | null
+        topic: string | null
+        format: string | null
+        referral: string | null
+      }>
+    }>(`/api/coaches/${encodeURIComponent(userId)}`),
+
+  setCoachRole: (userId: string, role: "director" | "coach") =>
+    request<{ ok: true; role: "director" | "coach" }>(
+      `/api/coaches/${encodeURIComponent(userId)}/role`,
+      { method: "POST", body: JSON.stringify({ role }) },
+    ),
+
+  removeCoach: (userId: string) =>
+    request<{ ok: true }>(`/api/coaches/${encodeURIComponent(userId)}`, {
+      method: "DELETE",
+    }),
+
   // Director: issue a one-time password reset link for a coach
   resetCoachPassword: (userId: string) =>
     request<{
