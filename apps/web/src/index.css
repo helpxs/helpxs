@@ -1,0 +1,134 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* HelpXs · Warm Soft palette
+ * bg          #F5F1E8  cream paper background
+ * surface     #FBF8F1  card surface
+ * surfaceAlt  #F0EADC
+ * ink         #1F1A14  primary text / primary button
+ * inkSoft     #5C5346  secondary text
+ * inkMute     #9A9180  tertiary text
+ * line        #E5DDC9  borders
+ * lineSoft    #EFE7D6
+ * accent      #8C1515  Stanford cardinal
+ * accentSoft  #F1E0DD  pink accent surface
+ * accentMid   #E5C7C2
+ * ok          #5B8A72
+ */
+
+:root {
+  --radius: 1.125rem; /* 18px */
+
+  --bg: #f5f1e8;
+  --surface: #fbf8f1;
+  --surface-alt: #f0eadc;
+  --ink: #1f1a14;
+  --ink-soft: #5c5346;
+  --ink-mute: #9a9180;
+  --line: #e5ddc9;
+  --line-soft: #efe7d6;
+  --accent: #8c1515;
+  --accent-soft: #f1e0dd;
+  --accent-mid: #e5c7c2;
+  --ok: #5b8a72;
+
+  /* shadcn semantic tokens mapped to Warm Soft */
+  --background: var(--bg);
+  --foreground: var(--ink);
+
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+
+  --primary: var(--ink);
+  --primary-foreground: var(--bg);
+
+  --secondary: var(--surface);
+  --secondary-foreground: var(--ink);
+
+  --muted: var(--surface-alt);
+  --muted-foreground: var(--ink-soft);
+
+  --accent-foreground: #ffffff;
+
+  --destructive: #b3261e;
+
+  --border: var(--line);
+  --input: var(--line);
+  --ring: var(--accent);
+
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--accent);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--surface-alt);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--line);
+  --sidebar-ring: var(--accent);
+}
+
+@theme inline {
+  --font-sans: "DM Sans", "Inter", system-ui, sans-serif;
+
+  --radius-sm: 0.75rem;  /* 12px */
+  --radius-md: 1.125rem; /* 18px */
+  --radius-lg: 1.5rem;   /* 24px */
+  --radius-xl: 1.75rem;  /* 28px */
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-alt: var(--surface-alt);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-mute: var(--ink-mute);
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-mid: var(--accent-mid);
+  --color-ok: var(--ok);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html,
+  body {
+    @apply bg-background text-foreground;
+    font-family: "DM Sans", "Inter", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}

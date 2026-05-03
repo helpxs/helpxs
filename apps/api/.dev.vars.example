@@ -1,0 +1,2 @@
+BETTER_AUTH_SECRET=replace-with-32-byte-hex
+BETTER_AUTH_URL=http://localhost:8787

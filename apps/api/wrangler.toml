@@ -1,0 +1,28 @@
+name = "helpxs"
+main = "src/index.ts"
+compatibility_date = "2025-04-01"
+compatibility_flags = ["nodejs_compat"]
+
+[observability]
+enabled = true
+
+# Single Worker that serves both /api/* (Hono) and the SPA (built Vite assets).
+# The build pipeline (npm run build at the workspace root) compiles the web
+# app to apps/web/dist; wrangler uploads it as static assets.
+[assets]
+directory = "../web/dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "helpxs"
+database_id = "5fd469db-9ca9-48c3-a7f1-5ddd9814e0b1"
+migrations_dir = "migrations"
+
+[vars]
+BETTER_AUTH_URL = "https://helpxs.styleshang.workers.dev"
+
+# Set BETTER_AUTH_SECRET via:
+#   echo "BETTER_AUTH_SECRET=..." > .dev.vars        (local)
+#   wrangler secret put BETTER_AUTH_SECRET           (production)
