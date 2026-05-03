@@ -23,6 +23,7 @@ import {
   EntryStep3,
   EntryStep4,
   EntryStep5,
+  EntryStepCustom,
   CoachReview,
 } from "./screens/coach-entry"
 import { CoachConfirm } from "./screens/coach-confirm"
@@ -69,6 +70,7 @@ const router = createBrowserRouter([
       { path: "/entry/3", element: <EntryStep3 /> },
       { path: "/entry/4", element: <EntryStep4 /> },
       { path: "/entry/5", element: <EntryStep5 /> },
+      { path: "/entry/custom", element: <EntryStepCustom /> },
       { path: "/entry/review", element: <CoachReview /> },
 
       // Director — role-gated

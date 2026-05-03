@@ -16,6 +16,9 @@ const STEPS = [
 
 export function EntryStepShell({
   stepIdx,
+  total,
+  title,
+  sub,
   children,
   primaryLabel = "Continue →",
   primaryTo,
@@ -24,6 +27,9 @@ export function EntryStepShell({
   backTo,
 }: {
   stepIdx: number
+  total?: number
+  title?: string
+  sub?: string
   children: ReactNode
   primaryLabel?: string
   primaryTo?: string
@@ -31,7 +37,12 @@ export function EntryStepShell({
   primaryOnClick?: () => void
   backTo: string
 }) {
-  const step = STEPS[stepIdx]
+  const builtIn = STEPS[stepIdx]
+  const step = {
+    title: title ?? builtIn?.title ?? "",
+    sub: sub ?? builtIn?.sub ?? "",
+  }
+  const stepCount = total ?? STEPS.length
   const navigate = useNavigate()
   return (
     <div className="min-h-svh bg-bg flex justify-center">
@@ -47,13 +58,16 @@ export function EntryStepShell({
               ←
             </button>
             <div className="text-[13px] text-ink-soft">
-              Step {stepIdx + 1} of {STEPS.length}
+              Step {stepIdx + 1} of {stepCount}
             </div>
-            <button className="text-[13px] text-accent font-medium">
+            <button
+              onClick={() => navigate("/")}
+              className="text-[13px] text-accent font-medium"
+            >
               Save
             </button>
           </div>
-          <StepBar current={stepIdx + 1} total={STEPS.length} />
+          <StepBar current={stepIdx + 1} total={stepCount} />
         </header>
 
         {/* scrollable body */}

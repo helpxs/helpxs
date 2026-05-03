@@ -78,6 +78,8 @@ export type CoachLoadEntry = {
   count: number
 }
 
+export type LabelCount = { label: string; count: number }
+
 export type AggregateOverview = {
   kpis: {
     sessions: number
@@ -90,8 +92,27 @@ export type AggregateOverview = {
     referralsDelta: string
   }
   weeklySessions: number[] // last 12 weeks
-  topTopics: Array<{ label: string; count: number }>
+  topTopics: LabelCount[]
   formatMix: { individual: number; group: number; workshop: number }
   coachLoad: CoachLoadEntry[]
   recentActivity: Array<{ title: string; subtitle: string; when: string }>
+}
+
+export type ReportData = AggregateOverview & {
+  window: "week" | "month" | "quarter"
+  windowLabel: string
+  prevLabel: string
+  narrative: string
+  narrativeSource: "llm" | "fallback"
+  interventions: LabelCount[]
+  referralDestinations: LabelCount[]
+  demographics: {
+    gender: Record<string, number>
+    ageRange: Record<string, number>
+    degreeLevel: Record<string, number>
+  }
+  comparison: {
+    sessions: number
+    topTopics: LabelCount[]
+  }
 }

@@ -1,6 +1,8 @@
+import { useState } from "react"
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom"
 import { Logo } from "@/components/app/logo"
 import { OrgSwitcher } from "@/components/app/org-switcher"
+import { ChangePasswordDialog } from "@/components/app/change-password-dialog"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -25,6 +27,7 @@ export function DirectorLayout() {
   const location = useLocation()
   const navigate = useNavigate()
   const { data: session } = authClient.useSession()
+  const [changePwOpen, setChangePwOpen] = useState(false)
 
   const user = session?.user
   const initials =
@@ -104,7 +107,9 @@ export function DirectorLayout() {
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" align="start" className="w-56">
             <DropdownMenuLabel>Account</DropdownMenuLabel>
-            <DropdownMenuItem disabled>Profile settings</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setChangePwOpen(true)}>
+              Change password
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate("/coach")}>
               Switch to coach view
             </DropdownMenuItem>
@@ -124,6 +129,11 @@ export function DirectorLayout() {
       <main className="flex-1 min-w-0 flex flex-col">
         <Outlet />
       </main>
+
+      <ChangePasswordDialog
+        open={changePwOpen}
+        onOpenChange={setChangePwOpen}
+      />
     </div>
   )
 }

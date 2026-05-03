@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { authClient } from "@/lib/auth-client"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -9,10 +10,12 @@ import {
 } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { OrgSwitcher } from "@/components/app/org-switcher"
+import { ChangePasswordDialog } from "@/components/app/change-password-dialog"
 
 export function ProfileSheet() {
   const { data: session } = authClient.useSession()
   const navigate = useNavigate()
+  const [changePwOpen, setChangePwOpen] = useState(false)
   const user = session?.user
   const initials =
     user?.name
@@ -49,8 +52,11 @@ export function ProfileSheet() {
           <div className="px-1">
             <OrgSwitcher />
           </div>
-          <button className="text-left px-4 py-3 rounded-[var(--radius-md)] hover:bg-bg flex justify-between items-center">
-            <span className="text-[15px]">Account settings</span>
+          <button
+            onClick={() => setChangePwOpen(true)}
+            className="text-left px-4 py-3 rounded-[var(--radius-md)] hover:bg-bg flex justify-between items-center"
+          >
+            <span className="text-[15px]">Change password</span>
             <span className="text-ink-mute">›</span>
           </button>
           <button
@@ -79,6 +85,10 @@ export function ProfileSheet() {
           </Button>
         </div>
       </SheetContent>
+      <ChangePasswordDialog
+        open={changePwOpen}
+        onOpenChange={setChangePwOpen}
+      />
     </Sheet>
   )
 }

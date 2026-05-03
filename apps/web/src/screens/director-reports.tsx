@@ -5,6 +5,9 @@ import { DirectorPage } from "@/layouts/director-page"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
+import { authClient } from "@/lib/auth-client"
+import { downloadBlob, reportFilename } from "@/lib/exports/download"
+import type { ReportData } from "@/lib/types"
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -55,6 +58,84 @@ export function DirectorReports() {
     queryKey: ["aggregates", "report", window],
     queryFn: () => api.getReport({ window }),
   })
+
+  const [exportingPdf, setExportingPdf] = useState(false)
+  const [exportingPptx, setExportingPptx] = useState(false)
+  const { data: session } = authClient.useSession()
+  const orgName = session?.user?.name
+    ? `${session.user.name.split(" ").pop()}'s program`
+    : "Stanford Well-Being Coaching"
+
+  async function exportPdf() {
+    if (!data) return
+    setExportingPdf(true)
+    try {
+      const audienceLabel =
+        AUDIENCES.find((a) => a.id === audience)?.label ?? "Report"
+      const generatedAt = new Date()
+      // Code-split: ~200KB react-pdf only loads when user clicks Export.
+      const { generateReportPdf } = await import("@/lib/exports/pdf")
+      const blob = await generateReportPdf({
+        report: data as ReportData,
+        ctx: {
+          audienceLabel,
+          generatedAt,
+          orgName,
+        },
+        includes: include,
+      })
+      downloadBlob(
+        blob,
+        reportFilename({
+          orgName,
+          audienceLabel,
+          windowLabel: data.windowLabel,
+          ext: "pdf",
+          generatedAt,
+        }),
+      )
+      toast.success("PDF downloaded.")
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "PDF export failed")
+    } finally {
+      setExportingPdf(false)
+    }
+  }
+
+  async function exportPptx() {
+    if (!data) return
+    setExportingPptx(true)
+    try {
+      const audienceLabel =
+        AUDIENCES.find((a) => a.id === audience)?.label ?? "Report"
+      const generatedAt = new Date()
+      const { generateReportPptx } = await import("@/lib/exports/pptx")
+      const blob = await generateReportPptx({
+        report: data as ReportData,
+        ctx: {
+          audienceLabel,
+          generatedAt,
+          orgName,
+        },
+        includes: include,
+      })
+      downloadBlob(
+        blob,
+        reportFilename({
+          orgName,
+          audienceLabel,
+          windowLabel: data.windowLabel,
+          ext: "pptx",
+          generatedAt,
+        }),
+      )
+      toast.success("Slides downloaded.")
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Slides export failed")
+    } finally {
+      setExportingPptx(false)
+    }
+  }
 
   return (
     <DirectorPage
@@ -144,22 +225,25 @@ export function DirectorReports() {
             </div>
             <div className="flex gap-1.5">
               <button
-                className="px-3 py-2 bg-bg border border-line rounded-[var(--radius-md)] text-xs"
-                onClick={() => toast("PDF export coming soon")}
+                className="px-3 py-2 bg-bg border border-line rounded-[var(--radius-md)] text-xs disabled:opacity-50"
+                disabled={!data || exportingPdf}
+                onClick={exportPdf}
               >
-                PDF
+                {exportingPdf ? "Building…" : "PDF"}
               </button>
               <button
-                className="px-3 py-2 bg-bg border border-line rounded-[var(--radius-md)] text-xs"
-                onClick={() => toast("Slides export coming soon")}
+                className="px-3 py-2 bg-bg border border-line rounded-[var(--radius-md)] text-xs disabled:opacity-50"
+                disabled={!data || exportingPptx}
+                onClick={exportPptx}
               >
-                Slides
+                {exportingPptx ? "Building…" : "Slides"}
               </button>
               <Button
                 size="sm"
-                onClick={() => toast.success("Report ready to share.")}
+                disabled={!data || exportingPdf}
+                onClick={exportPdf}
               >
-                Export
+                {exportingPdf ? "Building…" : "Export PDF"}
               </Button>
             </div>
           </div>

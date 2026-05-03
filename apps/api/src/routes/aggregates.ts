@@ -224,22 +224,25 @@ aggregates.get("/overview", async (c) => {
   const orgId = c.get("organizationId")
   const auth = c.get("auth")
 
-  const quarterStart = startOf("quarter")
-  const prevQuarterStart = new Date(quarterStart)
-  prevQuarterStart.setMonth(prevQuarterStart.getMonth() - 3)
+  const w = (c.req.query("window") ?? "quarter") as "week" | "month" | "quarter"
+  const window: "week" | "month" | "quarter" =
+    w === "week" || w === "month" || w === "quarter" ? w : "quarter"
 
-  const allSince = new Date(prevQuarterStart)
+  const curStart = startOf(window)
+  const prevStart = new Date(curStart)
+  if (window === "week") prevStart.setDate(prevStart.getDate() - 7)
+  else if (window === "month") prevStart.setMonth(prevStart.getMonth() - 1)
+  else prevStart.setMonth(prevStart.getMonth() - 3)
+
+  const allSince = new Date(prevStart)
   allSince.setDate(allSince.getDate() - 1)
 
   const rows = await loadSessions({ env: c.env, get: c.get }, allSince)
 
-  const cur = rows.filter(
-    (r) => new Date(r.occurred_at) >= quarterStart,
-  )
+  const cur = rows.filter((r) => new Date(r.occurred_at) >= curStart)
   const prev = rows.filter(
     (r) =>
-      new Date(r.occurred_at) >= prevQuarterStart &&
-      new Date(r.occurred_at) < quarterStart,
+      new Date(r.occurred_at) >= prevStart && new Date(r.occurred_at) < curStart,
   )
 
   const curAvg = avgDuration(cur)
@@ -316,6 +319,7 @@ aggregates.get("/overview", async (c) => {
   }
 
   return c.json({
+    window,
     kpis: {
       sessions: cur.length,
       sessionsDelta: fmtDeltaPct(cur.length, prev.length),
@@ -435,23 +439,47 @@ aggregates.get("/report", async (c) => {
     }))
     .sort((a, b) => b.count - a.count)
 
+  const sessionsDeltaPct =
+    prevRows.length === 0
+      ? rows.length > 0
+        ? "+100%"
+        : "—"
+      : `${
+          rows.length - prevRows.length >= 0 ? "+" : ""
+        }${Math.round(((rows.length - prevRows.length) / prevRows.length) * 100)}%`
+
   return c.json({
+    window,
+    windowLabel: WINDOW_LABEL[window],
+    prevLabel: PREV_LABEL[window],
     narrative,
     narrativeSource,
     kpis: {
       sessions: rows.length,
-      sessionsDelta: "",
+      sessionsDelta: sessionsDeltaPct,
       coachesActive: new Set(rows.map((r) => r.coach_id)).size,
       coachesDelta: "",
       avgEntryTime: avgDuration(rows).label,
       avgEntryTimeDelta: "",
       referrals: refs,
-      referralsDelta: "",
+      referralsDelta:
+        prevRows.length === 0
+          ? "—"
+          : `${
+              referrals(rows) - referrals(prevRows) >= 0 ? "+" : ""
+            }${referrals(rows) - referrals(prevRows)}`,
     },
     weeklySessions: weeklyBars(rows, 12),
     topTopics: topics,
+    interventions: interventionCounts(rows),
+    referralDestinations: referralDestinations(rows),
+    demographics: demographicMix(rows),
     formatMix: fmt,
     coachLoad,
+    comparison: {
+      sessions: prevRows.length,
+      topTopics: topicCounts(prevRows).slice(0, 5),
+    },
     recentActivity: [],
   })
 })

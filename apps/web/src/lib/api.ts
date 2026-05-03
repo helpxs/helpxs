@@ -2,6 +2,7 @@ import type {
   AggregateOverview,
   Coach,
   FormVersion,
+  ReportData,
   Session,
   SessionDraft,
 } from "./types"
@@ -160,15 +161,14 @@ export const api = {
     }),
 
   // Aggregates
-  getOverview: () =>
-    request<AggregateOverview>("/api/aggregates/overview"),
+  getOverview: (params: { window?: "week" | "month" | "quarter" } = {}) =>
+    request<AggregateOverview>(
+      `/api/aggregates/overview${
+        params.window ? `?window=${params.window}` : ""
+      }`,
+    ),
   getReport: (params: { window: "week" | "month" | "quarter" | "custom" }) =>
-    request<
-      AggregateOverview & {
-        narrative: string
-        narrativeSource: "llm" | "fallback"
-      }
-    >(`/api/aggregates/report?window=${params.window}`),
+    request<ReportData>(`/api/aggregates/report?window=${params.window}`),
 
   getInsights: () =>
     request<{ source: "llm" | "fallback"; insights: string[] }>(

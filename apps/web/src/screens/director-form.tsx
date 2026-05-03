@@ -98,7 +98,7 @@ export function DirectorFormSettings() {
               <Switch checked={f.required} disabled />
             </div>
             <div className="text-right">
-              {f.core ? (
+              {f.core && !hasOptions(f) ? (
                 <span className="text-[13px] text-ink-mute font-medium">
                   Locked
                 </span>
@@ -107,7 +107,7 @@ export function DirectorFormSettings() {
                   onClick={() => setEditing(f)}
                   className="text-[13px] text-accent font-medium"
                 >
-                  Edit
+                  {f.core ? "Edit options" : "Edit"}
                 </button>
               )}
             </div>
@@ -155,4 +155,12 @@ function prettyType(t: string) {
     .split("-")
     .map((w) => w[0].toUpperCase() + w.slice(1))
     .join(" ")
+}
+
+function hasOptions(f: FormField) {
+  return (
+    f.type === "single-select" ||
+    f.type === "multi-select" ||
+    f.type === "yes-no"
+  )
 }

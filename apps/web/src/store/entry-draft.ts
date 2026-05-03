@@ -22,6 +22,7 @@ type State = {
   draft: SessionDraft
   set: <K extends keyof SessionDraft>(key: K, value: SessionDraft[K]) => void
   toggleIn: (key: "topics" | "interventions" | "referralDestinations", value: string) => void
+  setCustom: (fieldId: string, value: unknown) => void
   reset: () => void
   durationSeconds: () => number
 }
@@ -40,6 +41,13 @@ export const useEntryDraft = create<State>()(
             : [...list, value]
           return { draft: { ...s.draft, [key]: next } }
         }),
+      setCustom: (fieldId, value) =>
+        set((s) => ({
+          draft: {
+            ...s.draft,
+            custom: { ...s.draft.custom, [fieldId]: value },
+          },
+        })),
       reset: () => set({ draft: empty() }),
       durationSeconds: () =>
         Math.max(0, Math.round((Date.now() - get().draft.startedAt) / 1000)),

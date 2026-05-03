@@ -1,9 +1,23 @@
+import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { DirectorPage } from "@/layouts/director-page"
 import { Button } from "@/components/ui/button"
 import { InsightsCard } from "@/components/app/insights-card"
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu"
 import { api } from "@/lib/api"
+
+type Window = "week" | "month" | "quarter"
+const WINDOW_LABEL: Record<Window, string> = {
+  week: "This week",
+  month: "This month",
+  quarter: "This quarter",
+}
 
 const TODAY = new Date().toLocaleDateString(undefined, {
   weekday: "long",
@@ -13,9 +27,10 @@ const TODAY = new Date().toLocaleDateString(undefined, {
 
 export function DirectorDashboard() {
   const navigate = useNavigate()
+  const [window, setWindow] = useState<Window>("quarter")
   const { data, isPending } = useQuery({
-    queryKey: ["aggregates", "overview"],
-    queryFn: () => api.getOverview(),
+    queryKey: ["aggregates", "overview", window],
+    queryFn: () => api.getOverview({ window }),
   })
 
   const k = data?.kpis
@@ -46,7 +61,7 @@ export function DirectorDashboard() {
 
   return (
     <DirectorPage
-      eyebrow={`${TODAY} · this quarter`}
+      eyebrow={`${TODAY} · ${WINDOW_LABEL[window].toLowerCase()}`}
       title={
         <>
           Hi —{" "}
@@ -55,9 +70,20 @@ export function DirectorDashboard() {
       }
       actions={
         <>
-          <Button variant="outline" size="md">
-            This quarter ▾
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="md">
+                {WINDOW_LABEL[window]} ▾
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {(Object.keys(WINDOW_LABEL) as Window[]).map((w) => (
+                <DropdownMenuItem key={w} onClick={() => setWindow(w)}>
+                  {WINDOW_LABEL[w]}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button
             variant="outline"
             size="md"
@@ -110,7 +136,7 @@ export function DirectorDashboard() {
                   h ? "text-accent" : "text-ink-soft"
                 }`}
               >
-                {d || "—"} vs last quarter
+                {d || "—"} vs last {window}
               </div>
             </div>
           ))}
