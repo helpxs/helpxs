@@ -100,11 +100,10 @@ export function DirectorSessions() {
       </div>
 
       <div className="bg-surface rounded-[var(--radius-lg)] overflow-hidden">
-        <div className="grid grid-cols-[1.4fr_1fr_1fr_0.7fr_0.7fr] gap-4 px-4 py-3 text-[11px] font-semibold text-ink-soft tracking-[0.5px] uppercase border-b border-line">
+        <div className="grid grid-cols-[1.6fr_1fr_1fr_0.7fr] gap-4 px-4 py-3 text-[11px] font-semibold text-ink-soft tracking-[0.5px] uppercase border-b border-line">
           <div>Topic</div>
           <div>Coach</div>
           <div>When</div>
-          <div>Format</div>
           <div className="text-right">Referral</div>
         </div>
 
@@ -118,7 +117,7 @@ export function DirectorSessions() {
           <Link
             key={s.id}
             to={`/director/sessions/${s.id}`}
-            className={`grid grid-cols-[1.4fr_1fr_1fr_0.7fr_0.7fr] gap-4 px-4 py-3 text-sm hover:bg-bg/50 transition-colors ${
+            className={`grid grid-cols-[1.6fr_1fr_1fr_0.7fr] gap-4 px-4 py-3 text-sm hover:bg-bg/50 transition-colors ${
               i < sessions.length - 1 ? "border-b border-line/60" : ""
             }`}
           >
@@ -133,7 +132,6 @@ export function DirectorSessions() {
             </div>
             <div className="text-ink-soft truncate">{coachLabel(s, coaches)}</div>
             <div className="text-ink-soft">{formatWhen(s.occurredAt)}</div>
-            <div className="text-ink-soft capitalize">{s.data.format}</div>
             <div
               className={`text-right ${
                 s.data.referral === "yes" ? "text-accent font-medium" : "text-ink-mute"

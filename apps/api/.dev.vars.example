@@ -1,2 +1,11 @@
 BETTER_AUTH_SECRET=replace-with-32-byte-hex
 BETTER_AUTH_URL=http://localhost:8787
+
+# Optional — dev-only auth-schema migration endpoint (omit in prod)
+# MIGRATE_TOKEN=replace-with-random-hex
+
+# Optional — Calendly OAuth. When unset, coaches connect a "demo" calendar that
+# seeds a realistic day of appointments so the full flow works without creds.
+# CALENDLY_CLIENT_ID=...
+# CALENDLY_CLIENT_SECRET=...
+# CALENDLY_REDIRECT_URI=http://localhost:8787/api/calendar/callback

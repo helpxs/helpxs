@@ -13,6 +13,11 @@ export type Bindings = {
   // Without these, the corresponding routes fall back to deterministic text.
   OPENROUTER_API_KEY?: string
   OPENROUTER_MODEL?: string
+  // Optional: Calendly OAuth. When unset, coaches connect a mock calendar so
+  // the flow still works end-to-end (course-prototype mode).
+  CALENDLY_CLIENT_ID?: string
+  CALENDLY_CLIENT_SECRET?: string
+  CALENDLY_REDIRECT_URI?: string
 }
 
 export type Role = "director" | "coach"

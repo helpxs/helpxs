@@ -120,14 +120,17 @@ sessions.post("/", async (c) => {
   const userId = c.get("user").id
   const orgId = c.get("organizationId")
   const body = (await c.req.json()) as {
-    draft: { date: string; topics?: string[]; interventions?: string[] } & Record<
-      string,
-      unknown
-    >
+    draft: {
+      date: string
+      studentToken?: string
+      topics?: string[]
+      activities?: string[]
+    } & Record<string, unknown>
     durationSeconds?: number
   }
 
   if (!body.draft) return c.json({ error: "Missing draft" }, 400)
+  const studentToken = body.draft.studentToken ?? null
 
   // Resolve current form version
   const formRow = await c.env.DB.prepare(
@@ -137,24 +140,17 @@ sessions.post("/", async (c) => {
     .first<{ id: number }>()
   const formVersion = formRow?.id ?? 1
 
-  // Resolve occurredAt
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const yesterday = new Date(today)
-  yesterday.setDate(yesterday.getDate() - 1)
-  const occurredAt =
-    body.draft.date === "today"
-      ? today.toISOString()
-      : body.draft.date === "yesterday"
-        ? yesterday.toISOString()
-        : new Date(body.draft.date).toISOString()
+  // occurredAt comes from the calendar event date (ISO); fall back to now.
+  const occurredAt = body.draft.date
+    ? new Date(body.draft.date).toISOString()
+    : new Date().toISOString()
 
   const id = crypto.randomUUID()
   const now = new Date().toISOString()
 
   await c.env.DB.prepare(
-    `INSERT INTO sessions_log (id, coach_id, organization_id, form_version, occurred_at, duration_seconds, data, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO sessions_log (id, coach_id, organization_id, form_version, occurred_at, duration_seconds, data, student_token, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
     .bind(
       id,
@@ -164,6 +160,7 @@ sessions.post("/", async (c) => {
       occurredAt,
       body.durationSeconds ?? null,
       JSON.stringify(body.draft),
+      studentToken,
       now,
     )
     .run()

@@ -183,7 +183,7 @@ export function ManageCoachSheet({
                           </div>
                           <div className="text-[11px] text-ink-mute mt-0.5">
                             {formatWhen(s.occurredAt)}
-                            {s.format ? ` · ${capitalize(s.format)}` : ""}
+                            {s.sessionType ? ` · ${s.sessionType}` : ""}
                             {s.referral === "yes" ? " · referred" : ""}
                           </div>
                         </div>
@@ -336,8 +336,4 @@ function formatWhen(iso: string) {
     hour: "numeric",
     minute: "2-digit",
   })
-}
-
-function capitalize(s: string) {
-  return s.charAt(0).toUpperCase() + s.slice(1)
 }

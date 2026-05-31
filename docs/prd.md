@@ -2,6 +2,13 @@
 
 **MVP Draft for Stanford Well-Being Coaching**
 
+> ⚠️ **Superseded (v1).** This is the original anonymous tap-fill PRD. The
+> codebase now implements the **calendar-integrated v2** PRD
+> (`localDocs/HelpXs_PRD.md`, May 2026): Calendly OAuth, pre-session recall,
+> pseudonymous token + crosswalk, a pre-filled post-session form, and a minimal
+> director dashboard + CSV (the full report generator and demographic fields
+> from this v1 doc were dropped). Kept for history.
+
 ---
 
 ## 1. Product Summary
