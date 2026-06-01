@@ -1,11 +1,12 @@
-import { Link } from "react-router-dom"
-import { useQuery } from "@tanstack/react-query"
+import { Link, useNavigate, useSearchParams } from "react-router-dom"
+import { useEffect } from "react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
 import { Logo } from "@/components/app/logo"
 import { ProfileSheet } from "@/components/app/profile-sheet"
 import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
 import { authClient } from "@/lib/auth-client"
-import { useEntryDraft } from "@/store/entry-draft"
 
 const TODAY_LABEL = new Date().toLocaleDateString(undefined, {
   weekday: "long",
@@ -15,19 +16,72 @@ const TODAY_LABEL = new Date().toLocaleDateString(undefined, {
 
 export function CoachHome() {
   const { data: session } = authClient.useSession()
-  const reset = useEntryDraft((s) => s.reset)
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const [params, setParams] = useSearchParams()
 
-  const { data, isPending } = useQuery({
+  const statusQ = useQuery({
+    queryKey: ["calendar", "status"],
+    queryFn: () => api.calendarStatus(),
+  })
+  const connected = statusQ.data?.connected ?? false
+
+  const todayQ = useQuery({
+    queryKey: ["calendar", "today"],
+    queryFn: () => api.todaySessions(),
+    enabled: connected,
+  })
+
+  const recentQ = useQuery({
     queryKey: ["sessions", "me"],
     queryFn: () => api.listMySessions(),
   })
 
-  const sessions = data?.sessions ?? []
-  const thisWeek = countThisWeek(sessions)
-  const lastWeek = countLastWeek(sessions)
-  const delta = thisWeek - lastWeek
-  const bars = weeklyBars(sessions)
+  // Surface the OAuth callback result, if any.
+  useEffect(() => {
+    const flag = params.get("calendar")
+    if (flag === "connected") {
+      toast.success("Calendar connected")
+      queryClient.invalidateQueries({ queryKey: ["calendar"] })
+    } else if (flag === "error") {
+      toast.error("Couldn't connect Calendly — try the demo calendar")
+    }
+    if (flag) {
+      params.delete("calendar")
+      setParams(params, { replace: true })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params])
+
+  const connectMock = useMutation({
+    mutationFn: () => api.connectMockCalendar(),
+    onSuccess: () => {
+      toast.success("Demo calendar connected")
+      queryClient.invalidateQueries({ queryKey: ["calendar"] })
+      queryClient.invalidateQueries({ queryKey: ["sessions", "me"] })
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  })
+
+  const connectCalendly = useMutation({
+    mutationFn: () => api.calendarAuthorizeUrl(),
+    onSuccess: ({ url }) => {
+      window.location.href = url
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  })
+
+  const sync = useMutation({
+    mutationFn: () => api.syncCalendar(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["calendar", "today"] })
+      toast.success("Calendar refreshed")
+    },
+  })
+
   const firstName = session?.user?.name?.split(" ")[0] ?? ""
+  const todaySessions = todayQ.data?.sessions ?? []
+  const recent = recentQ.data?.sessions ?? []
 
   return (
     <div className="px-[22px] pt-5 pb-6 flex-1 flex flex-col">
@@ -42,58 +96,120 @@ export function CoachHome() {
           className="text-[32px] font-semibold leading-[1.1]"
           style={{ letterSpacing: "-0.7px" }}
         >
-          {firstName ? `Hey ${firstName} — nice` : "Hey there — nice"}
+          {firstName ? `Hey ${firstName} —` : "Hey there —"}
           <br />
-          work today.
+          here's your day.
         </div>
       </div>
 
-      <div className="bg-accent-soft rounded-[var(--radius-lg)] p-[22px] mb-3.5 flex items-center justify-between">
-        <div>
-          <div className="text-xs text-accent font-medium mb-1">This week</div>
-          <div className="flex items-baseline gap-1.5">
-            <div
-              className="text-[42px] font-semibold text-accent"
-              style={{ letterSpacing: "-1px" }}
+      {/* Not connected: calendar connection card */}
+      {!statusQ.isPending && !connected && (
+        <div className="bg-accent-soft rounded-[var(--radius-lg)] p-[22px] mb-4">
+          <div className="text-base font-semibold text-accent mb-1">
+            Connect your calendar
+          </div>
+          <div className="text-[13px] text-ink-soft leading-[1.5] mb-4">
+            HelpXs reads your scheduled appointments so each session is ready to
+            document — student, date, and type filled in for you.
+          </div>
+          <div className="flex flex-col gap-2">
+            {statusQ.data?.calendlyConfigured && (
+              <Button
+                className="w-full"
+                disabled={connectCalendly.isPending}
+                onClick={() => connectCalendly.mutate()}
+              >
+                Connect Calendly
+              </Button>
+            )}
+            <Button
+              variant={statusQ.data?.calendlyConfigured ? "secondary" : "default"}
+              className="w-full"
+              disabled={connectMock.isPending}
+              onClick={() => connectMock.mutate()}
             >
-              {isPending ? "—" : thisWeek}
+              {connectMock.isPending ? "Connecting…" : "Use demo calendar"}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Connected: today's sessions */}
+      {connected && (
+        <>
+          <div className="flex justify-between items-center mb-3">
+            <div className="text-xs font-medium text-ink-soft tracking-[1px] uppercase">
+              Today's sessions
             </div>
-            <div className="text-[13px] text-ink-soft">sessions logged</div>
+            <button
+              onClick={() => sync.mutate()}
+              className="text-xs text-accent font-medium"
+              disabled={sync.isPending}
+            >
+              {sync.isPending ? "…" : "Refresh"}
+            </button>
           </div>
-          <div className="text-xs text-ink-soft mt-0.5">
-            {delta >= 0 ? `+${delta}` : delta} vs last week
+          <div className="flex flex-col gap-2.5 mb-6">
+            {todayQ.isPending && (
+              <div className="text-sm text-ink-soft py-2">Loading…</div>
+            )}
+            {!todayQ.isPending && todaySessions.length === 0 && (
+              <div className="bg-surface rounded-[var(--radius-lg)] px-[18px] py-8 text-center text-sm text-ink-soft">
+                No sessions on the calendar today.
+              </div>
+            )}
+            {todaySessions.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => navigate(`/coach/recall/${s.id}`)}
+                className="bg-surface rounded-[var(--radius-lg)] p-4 flex items-center gap-3.5 text-left hover:bg-bg/40 transition-colors"
+              >
+                <div className="w-[52px] shrink-0 text-center">
+                  <div className="text-[15px] font-semibold leading-none">
+                    {formatTime(s.startsAt)}
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[15px] font-medium truncate">
+                    {s.studentName}
+                  </div>
+                  <div className="text-xs text-ink-mute mt-0.5">
+                    {s.eventType ?? "Session"}
+                  </div>
+                </div>
+                <span
+                  className={`px-2.5 py-1 rounded-full text-[11px] font-medium ${
+                    s.returning
+                      ? "bg-accent-soft text-accent"
+                      : "bg-bg text-ink-soft"
+                  }`}
+                >
+                  {s.returning ? `Returning · ${s.priorSessions}` : "First session"}
+                </span>
+              </button>
+            ))}
           </div>
-        </div>
-        <div className="flex gap-1 items-end h-[50px]">
-          {bars.map((h, i) => (
-            <div
-              key={i}
-              className="w-[7px] bg-accent rounded-[3px]"
-              style={{
-                height: `${Math.max(8, h)}%`,
-                opacity: i === bars.length - 1 ? 1 : 0.45,
-              }}
-            />
-          ))}
-        </div>
-      </div>
+        </>
+      )}
 
-      <Button asChild className="w-full mb-6" onClick={() => reset()}>
-        <Link to="/entry/1">
-          <span className="text-[18px]">+</span> New session entry
-        </Link>
-      </Button>
-
-      <div className="text-xs font-medium text-ink-soft tracking-[1px] uppercase mb-3">
-        Recent
+      {/* Recent entries (own history) */}
+      <div className="flex justify-between items-center mb-3">
+        <div className="text-xs font-medium text-ink-soft tracking-[1px] uppercase">
+          Your recent entries
+        </div>
+        {recent.length > 0 && (
+          <Link to="/coach/history" className="text-xs text-accent font-medium">
+            See all
+          </Link>
+        )}
       </div>
       <div className="bg-surface rounded-[var(--radius-lg)] overflow-hidden">
-        {sessions.length === 0 && !isPending && (
+        {recent.length === 0 && !recentQ.isPending && (
           <div className="px-[18px] py-8 text-center text-sm text-ink-soft">
-            Nothing logged yet — your first entry will show here.
+            Nothing logged yet — finish a session to see it here.
           </div>
         )}
-        {sessions.slice(0, 6).map((s, i, arr) => (
+        {recent.slice(0, 5).map((s, i, arr) => (
           <Link
             key={s.id}
             to={`/sessions/${s.id}`}
@@ -103,10 +219,10 @@ export function CoachHome() {
           >
             <div>
               <div className="text-[15px] font-medium">
-                {s.data.topics?.[0] ?? "Untitled"}
+                {s.data.topics?.[0] ?? "Session"}
               </div>
               <div className="text-xs text-ink-mute mt-0.5">
-                {formatWhen(s.occurredAt)} · {capitalize(s.data.format)}
+                {formatWhen(s.occurredAt)} · {s.data.sessionType ?? "—"}
               </div>
             </div>
             <div className="w-[26px] h-[26px] rounded-full bg-bg flex items-center justify-center text-ink-soft text-sm">
@@ -117,45 +233,17 @@ export function CoachHome() {
       </div>
 
       <div className="mt-[18px] text-[11px] text-ink-mute leading-[1.5] text-center">
-        Sessions are anonymized — no student identifiers are stored.
+        Student identity is stored separately and never appears in reporting.
       </div>
     </div>
   )
 }
 
-function startOfWeek(d = new Date()) {
-  const x = new Date(d)
-  x.setHours(0, 0, 0, 0)
-  x.setDate(x.getDate() - x.getDay())
-  return x
-}
-
-function countThisWeek(sessions: { occurredAt: string }[]) {
-  const start = startOfWeek().getTime()
-  return sessions.filter((s) => new Date(s.occurredAt).getTime() >= start).length
-}
-
-function countLastWeek(sessions: { occurredAt: string }[]) {
-  const start = startOfWeek().getTime() - 7 * 86400_000
-  const end = startOfWeek().getTime()
-  return sessions.filter((s) => {
-    const t = new Date(s.occurredAt).getTime()
-    return t >= start && t < end
-  }).length
-}
-
-function weeklyBars(sessions: { occurredAt: string }[]) {
-  const now = startOfWeek().getTime() + 6 * 86400_000
-  const counts = Array.from({ length: 7 }).map((_, i) => {
-    const dayStart = now - (6 - i) * 86400_000
-    const dayEnd = dayStart + 86400_000
-    return sessions.filter((s) => {
-      const t = new Date(s.occurredAt).getTime()
-      return t >= dayStart && t < dayEnd
-    }).length
+function formatTime(iso: string) {
+  return new Date(iso).toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
   })
-  const max = Math.max(...counts, 1)
-  return counts.map((c) => (c / max) * 100)
 }
 
 function formatWhen(iso: string) {
@@ -175,8 +263,4 @@ function sameDay(a: Date, b: Date) {
     a.getMonth() === b.getMonth() &&
     a.getDate() === b.getDate()
   )
-}
-
-function capitalize(s: string) {
-  return s.charAt(0).toUpperCase() + s.slice(1)
 }

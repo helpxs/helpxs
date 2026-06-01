@@ -1,10 +1,13 @@
 import type {
   AggregateOverview,
+  CalendarEvent,
+  CalendarStatus,
   Coach,
   FormVersion,
-  ReportData,
+  RecallSummary,
   Session,
   SessionDraft,
+  TodaySession,
 } from "./types"
 
 class ApiError extends Error {
@@ -158,7 +161,7 @@ export const api = {
         occurredAt: string
         durationSeconds: number | null
         topic: string | null
-        format: string | null
+        sessionType: string | null
         referral: string | null
       }>
     }>(`/api/coaches/${encodeURIComponent(userId)}`),
@@ -195,20 +198,35 @@ export const api = {
       body: JSON.stringify({ password }),
     }),
 
-  // Aggregates
+  // Aggregates (minimal director dashboard + CSV)
   getOverview: (params: { window?: "week" | "month" | "quarter" } = {}) =>
     request<AggregateOverview>(
       `/api/aggregates/overview${
         params.window ? `?window=${params.window}` : ""
       }`,
     ),
-  getReport: (params: { window: "week" | "month" | "quarter" | "custom" }) =>
-    request<ReportData>(`/api/aggregates/report?window=${params.window}`),
+  exportCsvUrl: () => "/api/aggregates/export.csv",
 
-  getInsights: () =>
-    request<{ source: "llm" | "fallback"; insights: string[] }>(
-      "/api/aggregates/insights",
+  // Calendar (Calendly OAuth, with mock fallback)
+  calendarStatus: () => request<CalendarStatus>("/api/calendar/status"),
+  calendarAuthorizeUrl: () =>
+    request<{ url: string }>("/api/calendar/authorize"),
+  connectMockCalendar: () =>
+    request<{ ok: true; provider: "mock" }>("/api/calendar/connect/mock", {
+      method: "POST",
+    }),
+  syncCalendar: () =>
+    request<{ ok: true }>("/api/calendar/sync", { method: "POST" }),
+  todaySessions: () =>
+    request<{ sessions: TodaySession[] }>("/api/calendar/today"),
+  getCalendarEvent: (id: string) =>
+    request<{ event: CalendarEvent }>(
+      `/api/calendar/event/${encodeURIComponent(id)}`,
     ),
+
+  // Pre-session recall
+  getRecall: (token: string) =>
+    request<RecallSummary>(`/api/recall/${encodeURIComponent(token)}`),
 }
 
 export { ApiError }

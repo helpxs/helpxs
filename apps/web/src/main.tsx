@@ -17,20 +17,13 @@ import { Toaster } from "./components/ui/sonner"
 import { Login } from "./screens/login"
 import { CoachHome } from "./screens/coach-home"
 import { IndexRedirect } from "./screens/index-redirect"
-import {
-  EntryStep1,
-  EntryStep2,
-  EntryStep3,
-  EntryStep4,
-  EntryStep5,
-  EntryStepCustom,
-  CoachReview,
-} from "./screens/coach-entry"
+import { CoachRecall } from "./screens/coach-recall"
+import { CoachSessionForm } from "./screens/coach-session-form"
+import { CoachHistory } from "./screens/coach-history"
 import { CoachConfirm } from "./screens/coach-confirm"
 import { AcceptInvite } from "./screens/accept-invite"
 import { ResetPassword } from "./screens/reset-password"
 import { DirectorDashboard } from "./screens/director-dashboard"
-import { DirectorReports } from "./screens/director-reports"
 import { DirectorFormSettings } from "./screens/director-form"
 import { DirectorCoaches } from "./screens/director-coaches"
 import { DirectorSessions } from "./screens/director-sessions"
@@ -60,18 +53,14 @@ const router = createBrowserRouter([
         children: [
           { path: "/", element: <IndexRedirect /> },
           { path: "/coach", element: <CoachHome /> },
+          { path: "/coach/history", element: <CoachHistory /> },
           { path: "/entry/done", element: <CoachConfirm /> },
           { path: "/sessions/:id", element: <SessionDetail variant="coach" /> },
         ],
       },
-      // Entry steps don't share CoachLayout — they have their own sticky shell
-      { path: "/entry/1", element: <EntryStep1 /> },
-      { path: "/entry/2", element: <EntryStep2 /> },
-      { path: "/entry/3", element: <EntryStep3 /> },
-      { path: "/entry/4", element: <EntryStep4 /> },
-      { path: "/entry/5", element: <EntryStep5 /> },
-      { path: "/entry/custom", element: <EntryStepCustom /> },
-      { path: "/entry/review", element: <CoachReview /> },
+      // Recall + post-session form have their own full-height sticky shell
+      { path: "/coach/recall/:eventId", element: <CoachRecall /> },
+      { path: "/coach/session/:eventId", element: <CoachSessionForm /> },
 
       // Director — role-gated
       {
@@ -83,7 +72,6 @@ const router = createBrowserRouter([
             children: [
               { index: true, element: <Navigate to="overview" replace /> },
               { path: "overview", element: <DirectorDashboard /> },
-              { path: "reports", element: <DirectorReports /> },
               { path: "sessions", element: <DirectorSessions /> },
               {
                 path: "sessions/:id",

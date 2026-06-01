@@ -100,6 +100,16 @@ export function DynamicField({
           />
         </div>
       )
+    case "long-text":
+      return (
+        <textarea
+          value={(value as string) ?? ""}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="A sentence or two…"
+          rows={3}
+          className="w-full bg-surface rounded-[var(--radius-md)] border border-line px-4 py-3 text-[15px] text-ink outline-none focus:border-accent resize-none leading-[1.5]"
+        />
+      )
     case "number":
       return (
         <div className="bg-surface rounded-[var(--radius-md)] border border-line px-4 py-3">

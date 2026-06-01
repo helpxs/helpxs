@@ -3,25 +3,34 @@ import { persist } from "zustand/middleware"
 import type { SessionDraft } from "@/lib/types"
 
 const empty = (): SessionDraft => ({
-  date: "today",
-  occurred: "yes",
-  type: "follow-up",
-  format: "individual",
-  gender: "",
-  ageRange: "",
-  degreeLevel: "",
+  studentToken: "",
+  date: new Date().toISOString(),
+  sessionType: "Follow-up",
+  occurred: "occurred",
   topics: [],
-  interventions: [],
+  whatDiscussed: "",
+  whatDid: "",
+  activities: [],
   referral: "no",
   referralDestinations: [],
+  ocsProcess: "no",
   custom: {},
   startedAt: Date.now(),
 })
 
 type State = {
   draft: SessionDraft
+  /** Reset the draft and seed the auto-populated fields from a calendar event. */
+  initFromEvent: (event: {
+    studentToken: string
+    date: string
+    sessionType: string
+  }) => void
   set: <K extends keyof SessionDraft>(key: K, value: SessionDraft[K]) => void
-  toggleIn: (key: "topics" | "interventions" | "referralDestinations", value: string) => void
+  toggleIn: (
+    key: "topics" | "activities" | "referralDestinations",
+    value: string,
+  ) => void
   setCustom: (fieldId: string, value: unknown) => void
   reset: () => void
   durationSeconds: () => number
@@ -31,6 +40,16 @@ export const useEntryDraft = create<State>()(
   persist(
     (set, get) => ({
       draft: empty(),
+      initFromEvent: (event) =>
+        set({
+          draft: {
+            ...empty(),
+            studentToken: event.studentToken,
+            date: event.date,
+            sessionType: event.sessionType,
+            startedAt: Date.now(),
+          },
+        }),
       set: (key, value) =>
         set((s) => ({ draft: { ...s.draft, [key]: value } })),
       toggleIn: (key, value) =>

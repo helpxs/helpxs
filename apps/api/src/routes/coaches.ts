@@ -269,7 +269,7 @@ coaches.get("/:userId", async (c) => {
     recentSessions: recent.results.map((r) => {
       const data = JSON.parse(r.data) as {
         topics?: string[]
-        format?: string
+        sessionType?: string
         referral?: string
       }
       return {
@@ -277,7 +277,7 @@ coaches.get("/:userId", async (c) => {
         occurredAt: r.occurred_at,
         durationSeconds: r.duration_seconds,
         topic: data.topics?.[0] ?? null,
-        format: data.format ?? null,
+        sessionType: data.sessionType ?? null,
         referral: data.referral ?? null,
       }
     }),

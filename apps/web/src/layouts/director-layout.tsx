@@ -18,7 +18,6 @@ import { useNavigate } from "react-router-dom"
 const NAV = [
   { label: "Overview", to: "/director/overview" },
   { label: "Sessions", to: "/director/sessions" },
-  { label: "Reports", to: "/director/reports" },
   { label: "Form", to: "/director/form" },
   { label: "Coaches", to: "/director/coaches" },
 ] as const

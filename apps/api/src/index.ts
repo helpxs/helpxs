@@ -10,6 +10,8 @@ import { coaches } from "./routes/coaches"
 import { aggregates } from "./routes/aggregates"
 import { invitations } from "./routes/invitations"
 import { passwordResets } from "./routes/password-resets"
+import { calendar } from "./routes/calendar"
+import { recall } from "./routes/recall"
 
 const app = new Hono<App>()
 
@@ -74,6 +76,8 @@ app.route("/api/coaches", coaches)
 app.route("/api/aggregates", aggregates)
 app.route("/api/invitations", invitations)
 app.route("/api/password-resets", passwordResets)
+app.route("/api/calendar", calendar)
+app.route("/api/recall", recall)
 
 // Anything else (non-/api) falls through to the Static Assets binding, which
 // is configured (in wrangler.toml) with not_found_handling = "single-page-application"

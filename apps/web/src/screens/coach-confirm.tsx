@@ -12,12 +12,17 @@ export function CoachConfirm() {
 
   const summary: [string, string][] = last
     ? [
-        ["Topic", last.data.topics.join(", ") || "—"],
-        ["Format", capitalize(last.data.format)],
-        ["Intervention", last.data.interventions.slice(0, 3).join(", ") || "—"],
+        ["Type", last.data.sessionType || "—"],
+        ["Topics", last.data.topics?.join(", ") || "—"],
+        ["Skills", (last.data.activities ?? []).slice(0, 3).join(", ") || "—"],
         ["Referral", capitalize(last.data.referral)],
       ]
-    : [["Topic", "—"], ["Format", "—"], ["Intervention", "—"], ["Referral", "—"]]
+    : [
+        ["Type", "—"],
+        ["Topics", "—"],
+        ["Skills", "—"],
+        ["Referral", "—"],
+      ]
 
   const duration = last?.durationSeconds
     ? `${Math.floor(last.durationSeconds / 60)}:${String(last.durationSeconds % 60).padStart(2, "0")}`
@@ -25,7 +30,7 @@ export function CoachConfirm() {
 
   return (
     <div className="flex-1 flex flex-col px-6 py-8">
-      <Link to="/" className="self-end text-sm text-ink-soft">
+      <Link to="/coach" className="self-end text-sm text-ink-soft">
         Done
       </Link>
 
@@ -59,14 +64,8 @@ export function CoachConfirm() {
 
       <div className="flex flex-col gap-2.5">
         <Button asChild className="w-full">
-          <Link to="/entry/1">Log another session</Link>
+          <Link to="/coach">Back to today</Link>
         </Button>
-        <Link
-          to="/"
-          className="bg-transparent border-none text-ink-soft text-sm py-3.5 text-center"
-        >
-          Back to home
-        </Link>
       </div>
     </div>
   )

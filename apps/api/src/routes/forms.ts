@@ -3,6 +3,12 @@ import type { App } from "../middleware"
 import { requireAuth, requireRole } from "../middleware"
 import { DEFAULT_FORM } from "../default-form"
 
+// Core field ids that must always be present — directors may edit options but
+// not delete or hide them, so historical reporting stays comparable.
+const PROTECTED_CORE_IDS = DEFAULT_FORM.fields
+  .filter((f) => f.core)
+  .map((f) => f.id)
+
 export const forms = new Hono<App>()
 
 forms.use("*", requireAuth)
@@ -10,11 +16,6 @@ forms.use("*", requireAuth)
 // director-only.
 forms.use("/versions", requireRole("director"))
 forms.use("/version", requireRole("director"))
-
-async function getOrSeedCurrentForm(c: Parameters<typeof forms.fetch>[0]) {
-  // typing helper: not actually used as fetch arg; satisfies the linter
-  void c
-}
 
 forms.get("/current", async (c) => {
   const orgId = c.get("organizationId")
@@ -94,7 +95,7 @@ forms.post("/version", async (c) => {
   }
 
   // Guardrails: never allow PII fields.
-  const banned = /(name|email|phone|student[-_ ]?id|ssn)/i
+  const banned = /(name|email|phone|student[-_ ]?id|ssn|university[-_ ]?id)/i
   for (const f of body.schema.fields) {
     if (!f.core && banned.test(f.label)) {
       return c.json(
@@ -104,6 +105,18 @@ forms.post("/version", async (c) => {
         400,
       )
     }
+  }
+
+  // Guardrail: protected core fields can't be deleted or hidden.
+  const presentIds = new Set(body.schema.fields.map((f) => f.id))
+  const missingCore = PROTECTED_CORE_IDS.filter((id) => !presentIds.has(id))
+  if (missingCore.length > 0) {
+    return c.json(
+      {
+        error: `Core fields cannot be removed: ${missingCore.join(", ")}.`,
+      },
+      400,
+    )
   }
 
   const now = new Date().toISOString()

@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { DirectorPage } from "@/layouts/director-page"
 import { Button } from "@/components/ui/button"
-import { InsightsCard } from "@/components/app/insights-card"
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -36,28 +35,18 @@ export function DirectorDashboard() {
   const k = data?.kpis
   const weeks = data?.weeklySessions ?? Array(12).fill(0)
   const topics = data?.topTopics ?? []
-  const fmt = data?.formatMix ?? { individual: 0, group: 0, workshop: 0 }
+  const referralDests = data?.referralDestinations ?? []
   const activity = data?.recentActivity ?? []
-  const coachLoad = data?.coachLoad ?? []
-  const maxCoachLoad = Math.max(...coachLoad.map((c) => c.count), 1)
-
-  const fmtTotal = fmt.individual + fmt.group + fmt.workshop || 1
-  const fmtPct = {
-    individual: Math.round((fmt.individual / fmtTotal) * 100),
-    group: Math.round((fmt.group / fmtTotal) * 100),
-    workshop: Math.round((fmt.workshop / fmtTotal) * 100),
-  }
 
   const maxTopic = Math.max(...topics.map((t) => t.count), 1)
+  const maxRef = Math.max(...referralDests.map((r) => r.count), 1)
+  const weekMax = Math.max(...weeks, 1)
 
   const kpis: [string, string, string, boolean][] = [
     ["Sessions", String(k?.sessions ?? "—"), k?.sessionsDelta ?? "", true],
-    ["Coaches active", String(k?.coachesActive ?? "—"), k?.coachesDelta ?? "", false],
-    ["Avg entry time", k?.avgEntryTime ?? "—", k?.avgEntryTimeDelta ?? "", false],
+    ["Students seen", String(k?.students ?? "—"), "", false],
     ["Referrals", String(k?.referrals ?? "—"), k?.referralsDelta ?? "", false],
   ]
-
-  const weekMax = Math.max(...weeks, 1)
 
   return (
     <DirectorPage
@@ -91,13 +80,10 @@ export function DirectorDashboard() {
           >
             Browse sessions
           </Button>
-          <Button
-            variant="default"
-            size="md"
-            className="text-[13px] py-3"
-            onClick={() => navigate("/director/reports")}
-          >
-            Generate report
+          <Button variant="default" size="md" className="text-[13px] py-3" asChild>
+            <a href={api.exportCsvUrl()} download>
+              Download CSV
+            </a>
           </Button>
         </>
       }
@@ -108,7 +94,7 @@ export function DirectorDashboard() {
 
       <div className="flex flex-col gap-3.5">
         {/* KPI row */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {kpis.map(([l, v, d, h]) => (
             <div
               key={l}
@@ -132,11 +118,9 @@ export function DirectorDashboard() {
                 {v}
               </div>
               <div
-                className={`text-xs mt-1 ${
-                  h ? "text-accent" : "text-ink-soft"
-                }`}
+                className={`text-xs mt-1 ${h ? "text-accent" : "text-ink-soft"}`}
               >
-                {d || "—"} vs last {window}
+                {d ? `${d} vs last ${window}` : "—"}
               </div>
             </div>
           ))}
@@ -146,11 +130,11 @@ export function DirectorDashboard() {
         <div className="grid grid-cols-1 xl:grid-cols-[1.6fr_1fr] gap-3">
           <div className="bg-surface rounded-[var(--radius-lg)] p-[22px]">
             <div className="flex justify-between items-baseline mb-1">
-              <div className="text-base font-semibold">Sessions over time</div>
+              <div className="text-base font-semibold">Session volume</div>
               <div className="text-xs text-ink-mute">last 12 weeks</div>
             </div>
             <div className="text-xs text-ink-soft mb-[18px]">
-              Steady growth — week 12 is highest on record.
+              Sessions logged across the program, by week.
             </div>
             <div className="flex items-end gap-2 h-[160px]">
               {weeks.map((h, i) => {
@@ -197,44 +181,32 @@ export function DirectorDashboard() {
           </div>
         </div>
 
-        {/* Format mix + Recent activity */}
+        {/* Referral patterns + Recent activity */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           <div className="bg-surface rounded-[var(--radius-lg)] p-[22px]">
-            <div className="text-base font-semibold mb-1">Format mix</div>
+            <div className="text-base font-semibold mb-1">Referral patterns</div>
             <div className="text-xs text-ink-soft mb-4">
-              Across all sessions this quarter
+              Where students were referred onward
             </div>
-            <div className="flex gap-1 h-3.5 rounded-md overflow-hidden mb-3.5">
-              <div
-                className="bg-accent"
-                style={{ flex: Math.max(fmtPct.individual, 1) }}
-              />
-              <div
-                className="bg-accent-mid"
-                style={{ flex: Math.max(fmtPct.group, 1) }}
-              />
-              <div
-                className="bg-line"
-                style={{ flex: Math.max(fmtPct.workshop, 1) }}
-              />
-            </div>
-            <div className="flex gap-[18px] text-xs">
-              <Legend
-                swatch="var(--accent)"
-                label="Individual"
-                v={`${fmtPct.individual}%`}
-              />
-              <Legend
-                swatch="var(--accent-mid)"
-                label="Group"
-                v={`${fmtPct.group}%`}
-              />
-              <Legend
-                swatch="var(--line)"
-                label="Workshop"
-                v={`${fmtPct.workshop}%`}
-              />
-            </div>
+            {referralDests.length === 0 && (
+              <div className="text-xs text-ink-mute">
+                No referrals this period.
+              </div>
+            )}
+            {referralDests.map(({ label, count }) => (
+              <div key={label} className="mb-3 last:mb-0">
+                <div className="flex justify-between text-[13px] mb-1.5">
+                  <span className="font-medium">{label}</span>
+                  <span className="text-ink-soft">{count}</span>
+                </div>
+                <div className="h-1.5 bg-bg rounded-[3px]">
+                  <div
+                    className="h-full bg-accent rounded-[3px]"
+                    style={{ width: `${(count / maxRef) * 100}%` }}
+                  />
+                </div>
+              </div>
+            ))}
           </div>
           <div className="bg-surface rounded-[var(--radius-lg)] p-[22px]">
             <div className="text-base font-semibold mb-1">Recent activity</div>
@@ -261,55 +233,11 @@ export function DirectorDashboard() {
           </div>
         </div>
 
-        {/* Insights + Coach load */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          <InsightsCard />
-          <div className="bg-surface rounded-[var(--radius-lg)] p-[22px]">
-            <div className="flex justify-between items-baseline mb-1">
-              <div className="text-base font-semibold">Coach load</div>
-              <div className="text-xs text-ink-mute">this quarter</div>
-            </div>
-            <div className="text-xs text-ink-soft mb-4">
-              Sessions logged per coach
-            </div>
-            {coachLoad.length === 0 && (
-              <div className="text-xs text-ink-mute">No coaches yet.</div>
-            )}
-            {coachLoad.map((c) => (
-              <div key={c.coachId} className="mb-3 last:mb-0">
-                <div className="flex justify-between text-[13px] mb-1.5">
-                  <span className="font-medium">{c.name}</span>
-                  <span className="text-ink-soft">{c.count}</span>
-                </div>
-                <div className="h-1.5 bg-bg rounded-[3px]">
-                  <div
-                    className="h-full bg-accent rounded-[3px]"
-                    style={{ width: `${(c.count / maxCoachLoad) * 100}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+        <div className="text-[11px] text-ink-mute leading-[1.5] px-1">
+          The CSV export and every chart above operate on pseudonymous tokens
+          only — no student name or ID is ever included.
         </div>
       </div>
     </DirectorPage>
-  )
-}
-
-function Legend({
-  swatch,
-  label,
-  v,
-}: {
-  swatch: string
-  label: string
-  v: string
-}) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <div className="w-2 h-2 rounded-[2px]" style={{ background: swatch }} />
-      <span>{label}</span>
-      <span className="text-ink-mute">{v}</span>
-    </div>
   )
 }
