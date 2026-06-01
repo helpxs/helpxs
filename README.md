@@ -101,8 +101,11 @@ cd ../..
 
 # 2. Set local secrets
 cat <<EOF > apps/api/.dev.vars
-BETTER_AUTH_SECRET=$(openssl rand -hex 32)
+BETTER_AUTH_SECRET=<32-byte-hex>
 BETTER_AUTH_URL=http://localhost:8787
+MIGRATE_TOKEN=<random-token>
+OPENROUTER_API_KEY=<openrouter-api-key>
+OPENROUTER_MODEL=google/gemini-3-flash-preview
 EOF
 
 # 3. Start Worker (api + assets fallback) on :8787
@@ -112,7 +115,8 @@ npm run dev:api
 npm run dev:web
 
 # 5. One-shot: create better-auth's tables in your local D1
-curl -X POST http://localhost:8787/api/_internal/migrate-auth
+curl -X POST http://localhost:8787/api/_internal/migrate-auth \
+  -H "x-migrate-token: <your-migrate-token>"
 ```
 
 Then open http://localhost:5173, sign up with a Stanford-style email, and the
@@ -129,9 +133,11 @@ npx wrangler d1 create helpxs
 # Apply migrations to remote D1
 npx wrangler d1 migrations apply helpxs --remote
 
-# Set production secret
-npx wrangler secret put BETTER_AUTH_SECRET   # generate with: openssl rand -hex 32
-# Update BETTER_AUTH_URL in [vars] to your worker's public URL
+# Set production secrets
+npx wrangler secret put BETTER_AUTH_SECRET
+npx wrangler secret put MIGRATE_TOKEN
+npx wrangler secret put OPENROUTER_API_KEY
+# Update BETTER_AUTH_URL and OPENROUTER_MODEL in [vars] as needed
 
 cd ../..
 
@@ -139,7 +145,8 @@ cd ../..
 npm run deploy
 
 # One-shot: create better-auth's tables in remote D1
-curl -X POST https://<your-worker>.workers.dev/api/_internal/migrate-auth
+curl -X POST https://<your-worker>.workers.dev/api/_internal/migrate-auth \
+  -H "x-migrate-token: <your-migrate-token>"
 
 # Then go remove the /api/_internal/migrate-auth route, or gate it behind a
 # secret/admin check.

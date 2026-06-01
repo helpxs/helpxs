@@ -1,2 +1,5 @@
 BETTER_AUTH_SECRET=replace-with-32-byte-hex
 BETTER_AUTH_URL=http://localhost:8787
+MIGRATE_TOKEN=replace-with-random-token
+OPENROUTER_API_KEY=replace-with-openrouter-api-key
+OPENROUTER_MODEL=google/gemini-3-flash-preview
